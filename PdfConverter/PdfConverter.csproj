@@ -7,10 +7,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="itext7" Version="8.0.2" />
-		<PackageReference Include="iTextSharp" Version="5.5.13.3" />
+		<PackageReference Include="itext7" Version="7.1.16" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="OpenXmlPowerTools" Version="4.5.3.2" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0"/>
 	</ItemGroup>
 

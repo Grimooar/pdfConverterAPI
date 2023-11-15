@@ -1,4 +1,3 @@
-using PdfConverter;
 using PdfConverter.Service;
 
 var builder = WebApplication.CreateBuilder(args);

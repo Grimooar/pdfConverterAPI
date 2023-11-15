@@ -1,8 +1,9 @@
+using System.IO.Compression;
 using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas;
 using iText.Kernel.Pdf.Xobject;
 using iText.Layout;
 using iText.Layout.Element;
-using iText.Layout.Properties;
 
 namespace PdfConverter.Service;
 
@@ -89,7 +90,52 @@ public class PdfManipulationService
             }
         }
     }
-    /*public byte[] AddWatermark(byte[] pdfBytes, string watermarkText)
+    public byte[] AddWatermark(byte[] pdfBytes, string watermarkText)
+    {
+        try
+        {
+            using (MemoryStream inputStream = new MemoryStream(pdfBytes))
+            {
+                using (MemoryStream outputStream = new MemoryStream())
+                {
+                    using (PdfReader pdfReader = new PdfReader(inputStream))
+                    {
+                        using (PdfWriter pdfWriter = new PdfWriter(outputStream))
+                        {
+                            using (PdfDocument pdfDocument = new PdfDocument(pdfReader, pdfWriter))
+                            {
+                                // Iterate through all pages in the PDF
+                                for (int i = 1; i <= pdfDocument.GetNumberOfPages(); i++)
+                                {
+                                    PdfPage page = pdfDocument.GetPage(i);
+
+                                    // Create a Canvas object for drawing on the page
+                                    Canvas canvas = new Canvas(new PdfCanvas(page), new iText.Kernel.Geom.Rectangle(page.GetPageSize()));
+
+                                    // Add the watermark text
+                                    Paragraph watermark = new Paragraph(watermarkText)
+                                        .SetFontColor(iText.Kernel.Colors.ColorConstants.RED)
+                                        .SetFontSize(20)
+                                        .SetRotationAngle(Math.PI / 4);
+
+                                    canvas.Add(watermark.SetFixedPosition(140, 100,500));
+                                }
+                            }
+                        }
+                    }
+
+                    return outputStream.ToArray();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Добавим обработку ошибок и выводим подробности об ошибке
+            Console.WriteLine($"Error while trying add watermark: {ex.Message}");
+            throw;
+        }
+    }
+    public byte[] CompressPdf(byte[] pdfBytes, int compressionLevel)
     {
         using (MemoryStream inputStream = new MemoryStream(pdfBytes))
         {
@@ -97,16 +143,15 @@ public class PdfManipulationService
             {
                 using (PdfReader pdfReader = new PdfReader(inputStream))
                 {
-                    using (PdfWriter pdfWriter = new PdfWriter(outputStream))
+                    using (PdfWriter pdfWriter = new PdfWriter(outputStream).SetCompressionLevel(compressionLevel))
                     {
                         using (PdfDocument pdfDocument = new PdfDocument(pdfReader, pdfWriter))
                         {
                             Document document = new Document(pdfDocument);
 
-                            for (int i = 1; i <= pdfDocument.GetNumberOfPages(); i++)
-                            {
-                                document.ShowTextAligned(new Paragraph(watermarkText), 100, 100, i, TextAlignment.CENTER, VerticalAlignment.TOP, 0);
-                            }
+                            // Вы можете добавить здесь дополнительные операции по сжатию, если это необходимо
+
+                            document.Close();
                         }
                     }
                 }
@@ -114,7 +159,7 @@ public class PdfManipulationService
                 return outputStream.ToArray();
             }
         }
-    }*/
+    }
     public byte[] ExtractPagesFromPdf(byte[] pdfBytes, int startPage, int endPage)
     {
         if (startPage < 1 || endPage < startPage)

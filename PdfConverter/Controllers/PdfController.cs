@@ -1,11 +1,5 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.StaticFiles;
 using PdfConverter.Service;
-
 namespace PdfConverter.Controllers
 {
     [ApiController]
@@ -83,9 +77,9 @@ namespace PdfConverter.Controllers
 
                     // Создать URL для скачивания
                     string downloadUrl1 =
-                        Url.Action("DownloadFile", "Pdf", new { fileName = fileName1 }, Request.Scheme);
+                        Url.Action("DownloadFile", "Pdf", new { fileName = fileName1 }, Request.Scheme)!;
                     string downloadUrl2 =
-                        Url.Action("DownloadFile", "Pdf", new { fileName = fileName2 }, Request.Scheme);
+                        Url.Action("DownloadFile", "Pdf", new { fileName = fileName2 }, Request.Scheme)!;
 
                     return Ok(new
                     {
@@ -99,7 +93,7 @@ namespace PdfConverter.Controllers
                 return BadRequest($"Ошибка: {ex.Message}");
             }
         }
-        /*[HttpPost("addWatermark")]
+        [HttpPost("addWatermark")]
         public IActionResult AddWatermark(IFormFile pdfFile, string watermarkText)
         {
             if (pdfFile == null || pdfFile.Length == 0)
@@ -126,7 +120,6 @@ namespace PdfConverter.Controllers
 
             
         }
-        */
 
         [HttpGet("Download")]
         public IActionResult DownloadFile(string fileName)
@@ -147,7 +140,31 @@ namespace PdfConverter.Controllers
                 return NotFound();
             }
         }
+        [HttpPost("compress")]
+        public IActionResult CompressPdf(IFormFile pdfFile, int compressionLevel)
+        {
+            if (pdfFile == null || pdfFile.Length == 0)
+            {
+                return BadRequest("Пустой файл.");
+            }
 
+            try
+            {
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    pdfFile.CopyTo(ms);
+                    byte[] pdfBytes = ms.ToArray();
+
+                    byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel);
+
+                    return File(compressedPdf, "application/pdf", "compressed.pdf");
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Ошибка: {ex.Message}");
+            }
+        }
 
         [HttpPost("extract")]
         public IActionResult ExtractPagesFromPdf(IFormFile pdfFile, int startPage, int endPage)
