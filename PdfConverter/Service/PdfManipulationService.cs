@@ -6,9 +6,16 @@ using iText.Layout;
 using iText.Layout.Element;
 
 namespace PdfConverter.Service;
-
+/// <summary>
+/// Service for manipulating PDF files.
+/// </summary>
 public class PdfManipulationService
 {
+    /// <summary>
+    /// Merges multiple PDFs into a single PDF.
+    /// </summary>
+    /// <param name="pdfs">List of PDF byte arrays to be merged.</param>
+    /// <returns>Merged PDF byte array.</returns>
     public byte[] MergePdfs(List<byte[]> pdfs)
     {
         using (MemoryStream mergedPdfStream = new MemoryStream())
@@ -45,6 +52,12 @@ public class PdfManipulationService
             return mergedPdfStream.ToArray();
         }
     }
+    /// <summary>
+    /// Splits a PDF into two parts at the specified page.
+    /// </summary>
+    /// <param name="pdfBytes">Input PDF byte array.</param>
+    /// <param name="splitAfterPage">Page number to split after.</param>
+    /// <returns>List containing two split PDF byte arrays.</returns>
     public List<byte[]> SplitPdf(byte[] pdfBytes, int splitAfterPage)
     {
 
@@ -90,6 +103,12 @@ public class PdfManipulationService
             }
         }
     }
+    /// <summary>
+    /// Adds a watermark to each page of a PDF.
+    /// </summary>
+    /// <param name="pdfBytes">Input PDF byte array.</param>
+    /// <param name="watermarkText">Text for the watermark.</param>
+    /// <returns>PDF byte array with watermark added.</returns>
     public byte[] AddWatermark(byte[] pdfBytes, string watermarkText)
     {
         try
@@ -135,6 +154,12 @@ public class PdfManipulationService
             throw;
         }
     }
+    /// <summary>
+    /// Compresses a PDF using the specified compression level.
+    /// </summary>
+    /// <param name="pdfBytes">Input PDF byte array.</param>
+    /// <param name="compressionLevel">Compression level (from 0-9) 9 high compression 0 without.</param>
+    /// <returns>Compressed PDF byte array.</returns>
     public byte[] CompressPdf(byte[] pdfBytes, int compressionLevel)
     {
         using (MemoryStream inputStream = new MemoryStream(pdfBytes))
@@ -160,6 +185,13 @@ public class PdfManipulationService
             }
         }
     }
+    /// <summary>
+    /// Extracts specific pages from a PDF.
+    /// </summary>
+    /// <param name="pdfBytes">Input PDF byte array.</param>
+    /// <param name="startPage">Starting page number.</param>
+    /// <param name="endPage">Ending page number.</param>
+    /// <returns>Extracted PDF byte array.</returns>
     public byte[] ExtractPagesFromPdf(byte[] pdfBytes, int startPage, int endPage)
     {
         if (startPage < 1 || endPage < startPage)
