@@ -100,19 +100,17 @@ public class PdfManipulationService
     }
 
 
- 
+
     /// <summary>
     /// Adds a watermark to each page of a PDF.
     /// </summary>
     /// <param name="pdfBytes">Input PDF byte array.</param>
     /// <param name="watermarkText">Text for the watermark.</param>
     /// <returns>PDF byte array with watermark added.</returns>
-    public byte[] AddWatermark(byte[] pdfBytes, string watermarkText, string fileName)
+    public byte[] AddWatermark(byte[] pdfBytes, string watermarkText)
     {
         MemoryStream inputStream = new MemoryStream(pdfBytes);
         MemoryStream outputStream = new MemoryStream();
-        string outputFileName = $"{fileName}_Watermarked.pdf";
-
         try
         {
             using (PdfReader pdfReader = new PdfReader(inputStream))
@@ -121,14 +119,6 @@ public class PdfManipulationService
             {
                 AddWatermarkToPdf(pdfDocument, watermarkText);
             }
-
-            // Save the watermarked file with the user's filename and operation name
-            outputStream.Seek(0, SeekOrigin.Begin);
-            using (FileStream fs = new FileStream(outputFileName, FileMode.Create))
-            {
-                outputStream.CopyTo(fs);
-            }
-
             return outputStream.ToArray();
         }
         catch (Exception ex)

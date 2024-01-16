@@ -29,7 +29,7 @@ namespace PdfConverter.Controllers;
         {
              var pdfs = pdfFiles.Select(file => _pdfManipulationService.ConvertToByteArray(file)).ToList();
                 byte[] mergedPdf = _pdfManipulationService.MergePdfs(pdfs,filename);
-                return File(mergedPdf, "application/pdf", "merged.pdf");
+                return File(mergedPdf, "application/pdf", $"{filename}_merged.pdf");
             
         }
 
@@ -62,8 +62,8 @@ namespace PdfConverter.Controllers;
         {
             
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
-                byte[] watermarkedPdf = _pdfManipulationService.AddWatermark(pdfBytes, watermarkText,filename);
-                return File(watermarkedPdf, "application/pdf", "watermarked.pdf");
+                byte[] watermarkedPdf = _pdfManipulationService.AddWatermark(pdfBytes, watermarkText);
+                return File(watermarkedPdf, "application/pdf", $"{filename}_watermarked.pdf");
           
         }
 
@@ -98,7 +98,7 @@ namespace PdfConverter.Controllers;
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
                 byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel,filename);
 
-                return File(compressedPdf, "application/pdf", "compressed.pdf");
+                return File(compressedPdf, "application/pdf", $"{filename}_compressed.pdf");
         }
         /// <summary>
         /// Extracts pages from a PDF file.
@@ -116,7 +116,7 @@ namespace PdfConverter.Controllers;
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
                 byte[] extractedPdf = _pdfManipulationService.ExtractPagesFromPdf(pdfBytes, startPage, endPage,filename);
 
-                return File(extractedPdf, "application/pdf", "extracted.pdf");
+                return File(extractedPdf, "application/pdf", $"{filename}_extracted.pdf");
                 
         }
     }
