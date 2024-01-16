@@ -18,13 +18,10 @@ public class PdfManipulationService
     /// Merges multiple PDFs into a single PDF.
     /// </summary>
     /// <param name="pdfs">List of PDF byte arrays to be merged.</param>
-    /// <param name="fileName">file name</param>
     /// <returns>Merged PDF byte array.</returns>
-    public byte[] MergePdfs(List<byte[]> pdfs, string fileName)
+    public byte[] MergePdfs(List<byte[]> pdfs)
     {
         MemoryStream mergedPdfStream = new MemoryStream();
-        string outputFileName = $"{fileName}_Merged.pdf";
-
         using (PdfWriter writer = new PdfWriter(mergedPdfStream))
         using (PdfDocument mergedPdf = new PdfDocument(writer))
         using (Document document = new Document(mergedPdf))
@@ -32,13 +29,6 @@ public class PdfManipulationService
             foreach (var pdfBytes in pdfs)
             {
                 MergeSinglePdf(document, pdfBytes);
-            }
-
-            // Save the merged file with the user's filename and operation name
-            mergedPdfStream.Seek(0, SeekOrigin.Begin);
-            using (FileStream fs = new FileStream(outputFileName, FileMode.Create))
-            {
-                mergedPdfStream.CopyTo(fs);
             }
         }
 
@@ -64,23 +54,21 @@ public class PdfManipulationService
     /// <param name="pdfBytes">Input PDF byte array.</param>
     /// <param name="splitAfterPage">Page number to split after.</param>
     /// <returns>List containing two split PDF byte arrays.</returns>
-    public List<byte[]> SplitPdf(byte[] pdfBytes, int splitAfterPage, string fileName)
+    public List<byte[]> SplitPdf(byte[] pdfBytes, int splitAfterPage)
     {
         using (MemoryStream pdfStream = new MemoryStream(pdfBytes))
         using (PdfDocument pdfDocument = new PdfDocument(new PdfReader(pdfStream)))
         {
             List<byte[]> splitPdfDocuments = new List<byte[]>();
-            splitPdfDocuments.Add(CreateSplitPdf(pdfDocument, 1, splitAfterPage, fileName + "_Split1"));
-            splitPdfDocuments.Add(CreateSplitPdf(pdfDocument, splitAfterPage + 1, pdfDocument.GetNumberOfPages(), fileName + "_Split2"));
+            splitPdfDocuments.Add(CreateSplitPdf(pdfDocument, 1, splitAfterPage));
+            splitPdfDocuments.Add(CreateSplitPdf(pdfDocument, splitAfterPage + 1, pdfDocument.GetNumberOfPages()));
 
             return splitPdfDocuments;
         }
     }
-    private byte[] CreateSplitPdf(PdfDocument originalPdf, int startPage, int endPage, string fileName)
+    private byte[] CreateSplitPdf(PdfDocument originalPdf, int startPage, int endPage)
     {
         MemoryStream splitStream = new MemoryStream();
-        string outputFileName = $"{fileName}.pdf";
-
         using (PdfWriter writer = new PdfWriter(splitStream))
         using (PdfDocument splitPdf = new PdfDocument(writer))
         {
@@ -88,19 +76,12 @@ public class PdfManipulationService
             {
                 splitPdf.AddPage(originalPdf.GetPage(pageNum).CopyTo(splitPdf));
             }
-
-            // Save the split file with the user's filename and operation name
-            splitStream.Seek(0, SeekOrigin.Begin);
-            using (FileStream fs = new FileStream(outputFileName, FileMode.Create))
-            {
-                splitStream.CopyTo(fs);
-            }
         }
         return splitStream.ToArray();
     }
 
 
-
+ 
     /// <summary>
     /// Adds a watermark to each page of a PDF.
     /// </summary>
@@ -165,28 +146,18 @@ public class PdfManipulationService
     /// <param name="pdfBytes">Input PDF byte array.</param>
     /// <param name="compressionLevel">Compression level (from 0-9) 9 high compression 0 without.</param>
     /// <returns>Compressed PDF byte array.</returns>
-    public byte[] CompressPdf(byte[] pdfBytes, int compressionLevel, string fileName)
+    public byte[] CompressPdf(byte[] pdfBytes, int compressionLevel)
     {
         MemoryStream inputStream = new MemoryStream(pdfBytes);
         MemoryStream outputStream = new MemoryStream();
-        string outputFileName = $"{fileName}_Compressed.pdf";
-
         try
         {
             using (PdfReader pdfReader = new PdfReader(inputStream))
             using (PdfWriter pdfWriter = new PdfWriter(outputStream).SetCompressionLevel(compressionLevel))
             using (PdfDocument pdfDocument = new PdfDocument(pdfReader, pdfWriter))
             {
-                // Additional compression operations can be added here
+                // Дополнительные операции по сжатию могут быть добавлены здесь
             }
-
-            // Save the compressed file with the user's filename and operation name
-            outputStream.Seek(0, SeekOrigin.Begin);
-            using (FileStream fs = new FileStream(outputFileName, FileMode.Create))
-            {
-                outputStream.CopyTo(fs);
-            }
-
             return outputStream.ToArray();
         }
         catch (Exception ex)
@@ -207,14 +178,12 @@ public class PdfManipulationService
     /// <param name="startPage">Starting page number.</param>
     /// <param name="endPage">Ending page number.</param>
     /// <returns>Extracted PDF byte array.</returns>
-    public byte[] ExtractPagesFromPdf(byte[] pdfBytes, int startPage, int endPage, string fileName)
+    public byte[] ExtractPagesFromPdf(byte[] pdfBytes, int startPage, int endPage)
     {
         ValidatePageRange(startPage, endPage);
 
         MemoryStream pdfStream = new MemoryStream(pdfBytes);
         MemoryStream extractedPdfStream = new MemoryStream();
-        string outputFileName = $"{fileName}_Extracted.pdf";
-
         try
         {
             using (PdfReader pdfReader = new PdfReader(pdfStream))
@@ -227,14 +196,6 @@ public class PdfManipulationService
                     extractedPdf.AddPage(pdfDocument.GetPage(pageNum).CopyTo(extractedPdf));
                 }
             }
-
-            // Save the extracted file with the user's filename and operation name
-            extractedPdfStream.Seek(0, SeekOrigin.Begin);
-            using (FileStream fs = new FileStream(outputFileName, FileMode.Create))
-            {
-                extractedPdfStream.CopyTo(fs);
-            }
-
             return extractedPdfStream.ToArray();
         }
         catch (Exception ex)

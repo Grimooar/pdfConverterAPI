@@ -28,7 +28,7 @@ namespace PdfConverter.Controllers;
         public IActionResult MergePdfs(List<IFormFile> pdfFiles,string filename)
         {
              var pdfs = pdfFiles.Select(file => _pdfManipulationService.ConvertToByteArray(file)).ToList();
-                byte[] mergedPdf = _pdfManipulationService.MergePdfs(pdfs,filename);
+                byte[] mergedPdf = _pdfManipulationService.MergePdfs(pdfs);
                 return File(mergedPdf, "application/pdf", $"{filename}_merged.pdf");
             
         }
@@ -45,7 +45,7 @@ namespace PdfConverter.Controllers;
         {
                 
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
-                var splitPdfDocuments = _pdfManipulationService.SplitPdf(pdfBytes, splitAfterPage,filename);
+                var splitPdfDocuments = _pdfManipulationService.SplitPdf(pdfBytes, splitAfterPage);
 
              
                 return Ok(splitPdfDocuments); 
@@ -96,7 +96,7 @@ namespace PdfConverter.Controllers;
         {
             
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
-                byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel,filename);
+                byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel);
 
                 return File(compressedPdf, "application/pdf", $"{filename}_compressed.pdf");
         }
@@ -111,10 +111,8 @@ namespace PdfConverter.Controllers;
         public IActionResult ExtractPagesFromPdf(IFormFile pdfFile, int startPage, int endPage,string filename)
         {
            
-          
-           
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
-                byte[] extractedPdf = _pdfManipulationService.ExtractPagesFromPdf(pdfBytes, startPage, endPage,filename);
+                byte[] extractedPdf = _pdfManipulationService.ExtractPagesFromPdf(pdfBytes, startPage, endPage);
 
                 return File(extractedPdf, "application/pdf", $"{filename}_extracted.pdf");
                 
