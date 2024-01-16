@@ -25,10 +25,10 @@ namespace PdfConverter.Controllers;
         /// <param name="pdfFiles">List of PDF files to be merged.</param>
         /// <returns>Action result containing the merged PDF.</returns>
         [HttpPost("merge")]
-        public IActionResult MergePdfs(List<IFormFile> pdfFiles)
+        public IActionResult MergePdfs(List<IFormFile> pdfFiles,string filename)
         {
              var pdfs = pdfFiles.Select(file => _pdfManipulationService.ConvertToByteArray(file)).ToList();
-                byte[] mergedPdf = _pdfManipulationService.MergePdfs(pdfs);
+                byte[] mergedPdf = _pdfManipulationService.MergePdfs(pdfs,filename);
                 return File(mergedPdf, "application/pdf", "merged.pdf");
             
         }
@@ -41,11 +41,11 @@ namespace PdfConverter.Controllers;
         /// <param name="splitAfterPage">Page number to split after.</param>
         /// <returns>Action result containing URLs for downloading split parts.</returns>
         [HttpPost("split")]
-        public IActionResult SplitPdf(IFormFile pdfFile, int splitAfterPage)
+        public IActionResult SplitPdf(IFormFile pdfFile, int splitAfterPage,string filename)
         {
                 
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
-                var splitPdfDocuments = _pdfManipulationService.SplitPdf(pdfBytes, splitAfterPage);
+                var splitPdfDocuments = _pdfManipulationService.SplitPdf(pdfBytes, splitAfterPage,filename);
 
              
                 return Ok(splitPdfDocuments); 
@@ -58,11 +58,11 @@ namespace PdfConverter.Controllers;
         /// <param name="watermarkText">Text for the watermark.</param>
         /// <returns>Action result containing the watermarked PDF.</returns>
         [HttpPost("addWatermark")]
-        public IActionResult AddWatermark(IFormFile pdfFile, string watermarkText)
+        public IActionResult AddWatermark(IFormFile pdfFile, string watermarkText,string filename)
         {
             
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
-                byte[] watermarkedPdf = _pdfManipulationService.AddWatermark(pdfBytes, watermarkText);
+                byte[] watermarkedPdf = _pdfManipulationService.AddWatermark(pdfBytes, watermarkText,filename);
                 return File(watermarkedPdf, "application/pdf", "watermarked.pdf");
           
         }
@@ -92,11 +92,11 @@ namespace PdfConverter.Controllers;
         /// <param name="compressionLevel">Compression level (from 0-9) 9 high compression 0 without.</param>
         /// <returns>Action result containing the compressed PDF.</returns>
         [HttpPost("compress")]
-        public IActionResult CompressPdf(IFormFile pdfFile, int compressionLevel)
+        public IActionResult CompressPdf(IFormFile pdfFile, int compressionLevel,string filename)
         {
             
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
-                byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel);
+                byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel,filename);
 
                 return File(compressedPdf, "application/pdf", "compressed.pdf");
         }
@@ -108,11 +108,13 @@ namespace PdfConverter.Controllers;
         /// <param name="endPage">Ending page number.</param>
         /// <returns>Action result containing the extracted PDF.</returns>
         [HttpPost("extract")]
-        public IActionResult ExtractPagesFromPdf(IFormFile pdfFile, int startPage, int endPage)
+        public IActionResult ExtractPagesFromPdf(IFormFile pdfFile, int startPage, int endPage,string filename)
         {
-            
+           
+          
+           
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
-                byte[] extractedPdf = _pdfManipulationService.ExtractPagesFromPdf(pdfBytes, startPage, endPage);
+                byte[] extractedPdf = _pdfManipulationService.ExtractPagesFromPdf(pdfBytes, startPage, endPage,filename);
 
                 return File(extractedPdf, "application/pdf", "extracted.pdf");
                 
