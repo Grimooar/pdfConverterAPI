@@ -1,9 +1,12 @@
 using System.IO.Compression;
+using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas;
+using iText.Kernel.Pdf.Extgstate;
 using iText.Kernel.Pdf.Xobject;
 using iText.Layout;
 using iText.Layout.Element;
+using iText.Layout.Properties;
 
 namespace PdfConverter.Service;
 /// <summary>
@@ -116,13 +119,24 @@ public class PdfManipulationService
         for (int i = 1; i <= pdfDocument.GetNumberOfPages(); i++)
         {
             PdfPage page = pdfDocument.GetPage(i);
-            Canvas canvas = new Canvas(new PdfCanvas(page), page.GetPageSize());
+            Rectangle pageSize = page.GetPageSize();
+
+            // Настройка параметров водяного знака
+            float width = pageSize.GetWidth();
+            float height = pageSize.GetHeight();
+            float watermarkWidth = width / 2;
+            float x = (width - watermarkWidth) / 2;
+            float y = height / 2;
+
+            // Создание водяного знака
             Paragraph watermark = new Paragraph(watermarkText)
-                .SetFontColor(iText.Kernel.Colors.ColorConstants.RED)
-                .SetFontSize(20)
+                .SetFontColor(iText.Kernel.Colors.ColorConstants.RED, 0.5f) // 50% прозрачность
+                .SetFontSize(40)
                 .SetRotationAngle(Math.PI / 4);
 
-            canvas.Add(watermark.SetFixedPosition(140, 100, 500));
+            // Добавление водяного знака на страницу
+            Canvas canvas = new Canvas(page, pageSize);
+            canvas.Add(watermark.SetFixedPosition(x, y, watermarkWidth));
         }
     }
 
