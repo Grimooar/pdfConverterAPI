@@ -18,40 +18,33 @@ public class PdfManipulationService
     /// <returns>Merged PDF byte array.</returns>
     public byte[] MergePdfs(List<byte[]> pdfs)
     {
-        using (MemoryStream mergedPdfStream = new MemoryStream())
+        MemoryStream mergedPdfStream = new MemoryStream();
+        using (PdfWriter writer = new PdfWriter(mergedPdfStream))
+        using (PdfDocument mergedPdf = new PdfDocument(writer))
+        using (Document document = new Document(mergedPdf))
         {
-            using (PdfWriter writer = new PdfWriter(mergedPdfStream))
+            foreach (var pdfBytes in pdfs)
             {
-                using (PdfDocument mergedPdf = new PdfDocument(writer))
-                {
-                    using (Document document = new Document(mergedPdf))
-                    {
-                        foreach (var pdfBytes in pdfs)
-                        {
-                            using (MemoryStream pdfStream = new MemoryStream(pdfBytes))
-                            {
-                                using (PdfDocument sourcePdf = new PdfDocument(new PdfReader(pdfStream)))
-                                {
-                                    // Iterate through all pages in the source PDF
-                                    for (int pageNum = 1; pageNum <= sourcePdf.GetNumberOfPages(); pageNum++)
-                                    {
-                                        // Import the page from the source PDF
-                                        PdfPage page = sourcePdf.GetPage(pageNum);
-                                        PdfFormXObject formXObject = page.CopyAsFormXObject(mergedPdf);
-
-                                        // Add the imported page to the new document
-                                        document.Add(new Image(formXObject));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                MergeSinglePdf(document, pdfBytes);
             }
+        }
 
-            return mergedPdfStream.ToArray();
+        return mergedPdfStream.ToArray();
+    }
+    private void MergeSinglePdf(Document document, byte[] pdfBytes)
+    {
+        MemoryStream pdfStream = new MemoryStream(pdfBytes);
+        using (PdfDocument sourcePdf = new PdfDocument(new PdfReader(pdfStream)))
+        {
+            for (int pageNum = 1; pageNum <= sourcePdf.GetNumberOfPages(); pageNum++)
+            {
+                PdfPage page = sourcePdf.GetPage(pageNum);
+                PdfFormXObject formXObject = page.CopyAsFormXObject(document.GetPdfDocument());
+                document.Add(new Image(formXObject));
+            }
         }
     }
+
     /// <summary>
     /// Splits a PDF into two parts at the specified page.
     /// </summary>
@@ -60,49 +53,32 @@ public class PdfManipulationService
     /// <returns>List containing two split PDF byte arrays.</returns>
     public List<byte[]> SplitPdf(byte[] pdfBytes, int splitAfterPage)
     {
-
         using (MemoryStream pdfStream = new MemoryStream(pdfBytes))
+        using (PdfDocument pdfDocument = new PdfDocument(new PdfReader(pdfStream)))
         {
-            using (PdfDocument pdfDocument = new PdfDocument(new PdfReader(pdfStream)))
-            {
-                List<byte[]> splitPdfDocuments = new List<byte[]>();
+            List<byte[]> splitPdfDocuments = new List<byte[]>();
+            splitPdfDocuments.Add(CreateSplitPdf(pdfDocument, 1, splitAfterPage));
+            splitPdfDocuments.Add(CreateSplitPdf(pdfDocument, splitAfterPage + 1, pdfDocument.GetNumberOfPages()));
 
-                // Добавим первый документ с страницами до splitAfterPage
-                using (MemoryStream firstSplitStream = new MemoryStream())
-                {
-                    using (PdfWriter writer = new PdfWriter(firstSplitStream))
-                    {
-                        using (PdfDocument firstSplitPdf = new PdfDocument(writer))
-                        {
-                            for (int pageNum = 1; pageNum <= splitAfterPage; pageNum++)
-                            {
-                                firstSplitPdf.AddPage(pdfDocument.GetPage(pageNum).CopyTo(firstSplitPdf));
-                            }
-                        }
-                    }
-                    splitPdfDocuments.Add(firstSplitStream.ToArray());
-                }
-
-                // Добавим второй документ с оставшимися страницами
-                using (MemoryStream secondSplitStream = new MemoryStream())
-                {
-                    using (PdfWriter writer = new PdfWriter(secondSplitStream))
-                    {
-                        using (PdfDocument secondSplitPdf = new PdfDocument(writer))
-                        {
-                            for (int pageNum = splitAfterPage + 1; pageNum <= pdfDocument.GetNumberOfPages(); pageNum++)
-                            {
-                                secondSplitPdf.AddPage(pdfDocument.GetPage(pageNum).CopyTo(secondSplitPdf));
-                            }
-                        }
-                    }
-                    splitPdfDocuments.Add(secondSplitStream.ToArray());
-                }
-
-                return splitPdfDocuments;
-            }
+            return splitPdfDocuments;
         }
     }
+    private byte[] CreateSplitPdf(PdfDocument originalPdf, int startPage, int endPage)
+    {
+        MemoryStream splitStream = new MemoryStream();
+        using (PdfWriter writer = new PdfWriter(splitStream))
+        using (PdfDocument splitPdf = new PdfDocument(writer))
+        {
+            for (int pageNum = startPage; pageNum <= endPage; pageNum++)
+            {
+                splitPdf.AddPage(originalPdf.GetPage(pageNum).CopyTo(splitPdf));
+            }
+        }
+        return splitStream.ToArray();
+    }
+
+
+ 
     /// <summary>
     /// Adds a watermark to each page of a PDF.
     /// </summary>
@@ -111,49 +87,45 @@ public class PdfManipulationService
     /// <returns>PDF byte array with watermark added.</returns>
     public byte[] AddWatermark(byte[] pdfBytes, string watermarkText)
     {
+        MemoryStream inputStream = new MemoryStream(pdfBytes);
+        MemoryStream outputStream = new MemoryStream();
         try
         {
-            using (MemoryStream inputStream = new MemoryStream(pdfBytes))
+            using (PdfReader pdfReader = new PdfReader(inputStream))
+            using (PdfWriter pdfWriter = new PdfWriter(outputStream))
+            using (PdfDocument pdfDocument = new PdfDocument(pdfReader, pdfWriter))
             {
-                using (MemoryStream outputStream = new MemoryStream())
-                {
-                    using (PdfReader pdfReader = new PdfReader(inputStream))
-                    {
-                        using (PdfWriter pdfWriter = new PdfWriter(outputStream))
-                        {
-                            using (PdfDocument pdfDocument = new PdfDocument(pdfReader, pdfWriter))
-                            {
-                                // Iterate through all pages in the PDF
-                                for (int i = 1; i <= pdfDocument.GetNumberOfPages(); i++)
-                                {
-                                    PdfPage page = pdfDocument.GetPage(i);
-
-                                    // Create a Canvas object for drawing on the page
-                                    Canvas canvas = new Canvas(new PdfCanvas(page), new iText.Kernel.Geom.Rectangle(page.GetPageSize()));
-
-                                    // Add the watermark text
-                                    Paragraph watermark = new Paragraph(watermarkText)
-                                        .SetFontColor(iText.Kernel.Colors.ColorConstants.RED)
-                                        .SetFontSize(20)
-                                        .SetRotationAngle(Math.PI / 4);
-
-                                    canvas.Add(watermark.SetFixedPosition(140, 100,500));
-                                }
-                            }
-                        }
-                    }
-
-                    return outputStream.ToArray();
-                }
+                AddWatermarkToPdf(pdfDocument, watermarkText);
             }
+            return outputStream.ToArray();
         }
         catch (Exception ex)
         {
-            // Добавим обработку ошибок и выводим подробности об ошибке
-            Console.WriteLine($"Error while trying add watermark: {ex.Message}");
+            Console.WriteLine($"Error while trying to add watermark: {ex.Message}");
             throw;
         }
+        finally
+        {
+            inputStream.Close();
+            outputStream.Close();
+        }
     }
+
+    private void AddWatermarkToPdf(PdfDocument pdfDocument, string watermarkText)
+    {
+        for (int i = 1; i <= pdfDocument.GetNumberOfPages(); i++)
+        {
+            PdfPage page = pdfDocument.GetPage(i);
+            Canvas canvas = new Canvas(new PdfCanvas(page), page.GetPageSize());
+            Paragraph watermark = new Paragraph(watermarkText)
+                .SetFontColor(iText.Kernel.Colors.ColorConstants.RED)
+                .SetFontSize(20)
+                .SetRotationAngle(Math.PI / 4);
+
+            canvas.Add(watermark.SetFixedPosition(140, 100, 500));
+        }
+    }
+
     /// <summary>
     /// Compresses a PDF using the specified compression level.
     /// </summary>
@@ -162,27 +134,27 @@ public class PdfManipulationService
     /// <returns>Compressed PDF byte array.</returns>
     public byte[] CompressPdf(byte[] pdfBytes, int compressionLevel)
     {
-        using (MemoryStream inputStream = new MemoryStream(pdfBytes))
+        MemoryStream inputStream = new MemoryStream(pdfBytes);
+        MemoryStream outputStream = new MemoryStream();
+        try
         {
-            using (MemoryStream outputStream = new MemoryStream())
+            using (PdfReader pdfReader = new PdfReader(inputStream))
+            using (PdfWriter pdfWriter = new PdfWriter(outputStream).SetCompressionLevel(compressionLevel))
+            using (PdfDocument pdfDocument = new PdfDocument(pdfReader, pdfWriter))
             {
-                using (PdfReader pdfReader = new PdfReader(inputStream))
-                {
-                    using (PdfWriter pdfWriter = new PdfWriter(outputStream).SetCompressionLevel(compressionLevel))
-                    {
-                        using (PdfDocument pdfDocument = new PdfDocument(pdfReader, pdfWriter))
-                        {
-                            Document document = new Document(pdfDocument);
-
-                            // Вы можете добавить здесь дополнительные операции по сжатию, если это необходимо
-
-                            document.Close();
-                        }
-                    }
-                }
-
-                return outputStream.ToArray();
+                // Дополнительные операции по сжатию могут быть добавлены здесь
             }
+            return outputStream.ToArray();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error while trying to compress PDF: {ex.Message}");
+            throw;
+        }
+        finally
+        {
+            inputStream.Close();
+            outputStream.Close();
         }
     }
     /// <summary>
@@ -194,31 +166,50 @@ public class PdfManipulationService
     /// <returns>Extracted PDF byte array.</returns>
     public byte[] ExtractPagesFromPdf(byte[] pdfBytes, int startPage, int endPage)
     {
-        if (startPage < 1 || endPage < startPage)
-        {
-            throw new ArgumentException("Неверные параметры страниц.");
-        }
+        ValidatePageRange(startPage, endPage);
 
-        using (MemoryStream pdfStream = new MemoryStream(pdfBytes))
+        MemoryStream pdfStream = new MemoryStream(pdfBytes);
+        MemoryStream extractedPdfStream = new MemoryStream();
+        try
         {
-            using (PdfDocument pdfDocument = new PdfDocument(new PdfReader(pdfStream)))
+            using (PdfReader pdfReader = new PdfReader(pdfStream))
+            using (PdfDocument pdfDocument = new PdfDocument(pdfReader))
+            using (PdfWriter writer = new PdfWriter(extractedPdfStream))
+            using (PdfDocument extractedPdf = new PdfDocument(writer))
             {
-                using (MemoryStream extractedPdfStream = new MemoryStream())
+                for (int pageNum = startPage; pageNum <= Math.Min(endPage, pdfDocument.GetNumberOfPages()); pageNum++)
                 {
-                    using (PdfWriter writer = new PdfWriter(extractedPdfStream))
-                    {
-                        using (PdfDocument extractedPdf = new PdfDocument(writer))
-                        {
-                            for (int pageNum = startPage; pageNum <= Math.Min(endPage, pdfDocument.GetNumberOfPages()); pageNum++)
-                            {
-                                extractedPdf.AddPage(pdfDocument.GetPage(pageNum).CopyTo(extractedPdf));
-                            }
-                        }
-                    }
-
-                    return extractedPdfStream.ToArray();
+                    extractedPdf.AddPage(pdfDocument.GetPage(pageNum).CopyTo(extractedPdf));
                 }
             }
+            return extractedPdfStream.ToArray();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error extracting pages: {ex.Message}");
+            throw;
+        }
+        finally
+        {
+            pdfStream.Close();
+            extractedPdfStream.Close();
         }
     }
+
+    private void ValidatePageRange(int startPage, int endPage)
+    {
+        if (startPage < 1 || endPage < startPage)
+        {
+            throw new ArgumentException("Invalid page parameters.");
+        }
+    }
+    public byte[] ConvertToByteArray(IFormFile file)
+    {
+        using (var stream = new MemoryStream())
+        {
+            file.CopyTo(stream);
+            return stream.ToArray();
+        }
+    }
+
 }

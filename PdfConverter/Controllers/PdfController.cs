@@ -9,18 +9,15 @@ namespace PdfConverter.Controllers;
     [Route("api/pdf")]
     public class PdfController : ControllerBase
     {
-        private readonly IWebHostEnvironment _environment;
         private readonly PdfManipulationService _pdfManipulationService;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfController"/> class.
         /// </summary>
         /// <param name="pdfManipulationService">Service for manipulating PDFs.</param>
-        /// <param name="environment">Hosting environment.</param>
-        public PdfController(PdfManipulationService pdfManipulationService, IWebHostEnvironment environment)
+        public PdfController(PdfManipulationService pdfManipulationService)
         {
             _pdfManipulationService = pdfManipulationService;
-            _environment = environment;
         }
         /// <summary>
         /// Merges multiple PDFs into a single PDF.
@@ -32,19 +29,8 @@ namespace PdfConverter.Controllers;
         {
             try
             {
-                List<byte[]> pdfs = new List<byte[]>();
-
-                foreach (var pdfFile in pdfFiles)
-                {
-                    using (MemoryStream ms = new MemoryStream())
-                    {
-                        pdfFile.CopyTo(ms);
-                        pdfs.Add(ms.ToArray());
-                    }
-                }
-
+                var pdfs = pdfFiles.Select(file => _pdfManipulationService.ConvertToByteArray(file)).ToList();
                 byte[] mergedPdf = _pdfManipulationService.MergePdfs(pdfs);
-
                 return File(mergedPdf, "application/pdf", "merged.pdf");
             }
             catch (Exception ex)
@@ -52,6 +38,7 @@ namespace PdfConverter.Controllers;
                 return BadRequest($"Ошибка при объединении PDF: {ex.Message}");
             }
         }
+
 
         /// <summary>
         /// Splits a PDF file at the specified page.
@@ -64,52 +51,23 @@ namespace PdfConverter.Controllers;
         {
             if (pdfFile == null || pdfFile.Length == 0)
             {
-                return BadRequest("Пустой файл.");
+                return BadRequest("Empty file.");
             }
 
             try
             {
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    pdfFile.CopyTo(ms);
-                    byte[] pdfBytes = ms.ToArray();
+                byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
+                var splitPdfDocuments = _pdfManipulationService.SplitPdf(pdfBytes, splitAfterPage);
 
-                    List<byte[]> splitPdfDocuments = _pdfManipulationService.SplitPdf(pdfBytes, splitAfterPage);
-
-                    if (splitPdfDocuments.Count != 2)
-                    {
-                        return BadRequest("Ошибка при разделении файла.");
-                    }
-
-                    string fileName1 = "FirstPart.pdf";
-                    string fileName2 = "SecondPart.pdf";
-
-                    // Сохранить первую часть во временный файл
-                    string filePath1 = Path.Combine(Path.GetTempPath(), fileName1);
-                    System.IO.File.WriteAllBytes(filePath1, splitPdfDocuments[0]);
-
-                    // Сохранить вторую часть во временный файл
-                    string filePath2 = Path.Combine(Path.GetTempPath(), fileName2);
-                    System.IO.File.WriteAllBytes(filePath2, splitPdfDocuments[1]);
-
-                    // Создать URL для скачивания
-                    string downloadUrl1 =
-                        Url.Action("DownloadFile", "Pdf", new { fileName = fileName1 }, Request.Scheme)!;
-                    string downloadUrl2 =
-                        Url.Action("DownloadFile", "Pdf", new { fileName = fileName2 }, Request.Scheme)!;
-
-                    return Ok(new
-                    {
-                        FirstPartUrl = downloadUrl1,
-                        SecondPartUrl = downloadUrl2
-                    });
-                }
+             
+                return Ok(splitPdfDocuments); // Пример
             }
             catch (Exception ex)
             {
-                return BadRequest($"Ошибка: {ex.Message}");
+                return BadRequest($"Error splitting PDF: {ex.Message}");
             }
         }
+
         /// <summary>
         /// Adds a watermark to a PDF file.
         /// </summary>
@@ -121,28 +79,21 @@ namespace PdfConverter.Controllers;
         {
             if (pdfFile == null || pdfFile.Length == 0)
             {
-                return BadRequest("Пустой файл.");
+                return BadRequest("Empty file.");
             }
 
             try
             {
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    pdfFile.CopyTo(ms);
-                    byte[] pdfBytes = ms.ToArray();
-
-                    byte[] watermarkedPdf = _pdfManipulationService.AddWatermark(pdfBytes, watermarkText);
-
-                    return File(watermarkedPdf, "application/pdf", "watermarked.pdf");
-                }
+                byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
+                byte[] watermarkedPdf = _pdfManipulationService.AddWatermark(pdfBytes, watermarkText);
+                return File(watermarkedPdf, "application/pdf", "watermarked.pdf");
             }
             catch (Exception ex)
             {
                 return BadRequest($"Ошибка: {ex.Message}");
             }
-
-            
         }
+
         /// <summary>
         /// Downloads a file with the specified file name.
         /// </summary>
@@ -156,8 +107,7 @@ namespace PdfConverter.Controllers;
             if (System.IO.File.Exists(filePath))
             {
                 var fileBytes = System.IO.File.ReadAllBytes(filePath);
-
-                // Удалите временный файл после отправки
+                
                 System.IO.File.Delete(filePath);
 
                 return File(fileBytes, "application/pdf", fileName);
@@ -178,20 +128,15 @@ namespace PdfConverter.Controllers;
         {
             if (pdfFile == null || pdfFile.Length == 0)
             {
-                return BadRequest("Пустой файл.");
+                return BadRequest("Empty file.");
             }
 
             try
             {
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    pdfFile.CopyTo(ms);
-                    byte[] pdfBytes = ms.ToArray();
+                byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
+                byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel);
 
-                    byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel);
-
-                    return File(compressedPdf, "application/pdf", "compressed.pdf");
-                }
+                return File(compressedPdf, "application/pdf", "compressed.pdf");
             }
             catch (Exception ex)
             {
@@ -208,22 +153,17 @@ namespace PdfConverter.Controllers;
         [HttpPost("extract")]
         public IActionResult ExtractPagesFromPdf(IFormFile pdfFile, int startPage, int endPage)
         {
+            if (pdfFile == null || pdfFile.Length == 0)
+            {
+                return BadRequest("Empty file.");
+            }
+
             try
             {
-                if (pdfFile == null || pdfFile.Length == 0)
-                {
-                    return BadRequest("Пустой файл.");
-                }
+                byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
+                byte[] extractedPdf = _pdfManipulationService.ExtractPagesFromPdf(pdfBytes, startPage, endPage);
 
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    pdfFile.CopyTo(ms);
-                    byte[] pdfBytes = ms.ToArray();
-
-                    byte[] extractedPdf = _pdfManipulationService.ExtractPagesFromPdf(pdfBytes, startPage, endPage);
-
-                    return File(extractedPdf, "application/pdf", "extracted.pdf");
-                }
+                return File(extractedPdf, "application/pdf", "extracted.pdf");
             }
             catch (Exception ex)
             {
