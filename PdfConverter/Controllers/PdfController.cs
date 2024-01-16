@@ -27,16 +27,10 @@ namespace PdfConverter.Controllers;
         [HttpPost("merge")]
         public IActionResult MergePdfs(List<IFormFile> pdfFiles)
         {
-            try
-            {
-                var pdfs = pdfFiles.Select(file => _pdfManipulationService.ConvertToByteArray(file)).ToList();
+             var pdfs = pdfFiles.Select(file => _pdfManipulationService.ConvertToByteArray(file)).ToList();
                 byte[] mergedPdf = _pdfManipulationService.MergePdfs(pdfs);
                 return File(mergedPdf, "application/pdf", "merged.pdf");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Ошибка при объединении PDF: {ex.Message}");
-            }
+            
         }
 
 
@@ -49,23 +43,12 @@ namespace PdfConverter.Controllers;
         [HttpPost("split")]
         public IActionResult SplitPdf(IFormFile pdfFile, int splitAfterPage)
         {
-            if (pdfFile == null || pdfFile.Length == 0)
-            {
-                return BadRequest("Empty file.");
-            }
-
-            try
-            {
+                
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
                 var splitPdfDocuments = _pdfManipulationService.SplitPdf(pdfBytes, splitAfterPage);
 
              
-                return Ok(splitPdfDocuments); // Пример
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error splitting PDF: {ex.Message}");
-            }
+                return Ok(splitPdfDocuments); 
         }
 
         /// <summary>
@@ -77,21 +60,11 @@ namespace PdfConverter.Controllers;
         [HttpPost("addWatermark")]
         public IActionResult AddWatermark(IFormFile pdfFile, string watermarkText)
         {
-            if (pdfFile == null || pdfFile.Length == 0)
-            {
-                return BadRequest("Empty file.");
-            }
-
-            try
-            {
+            
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
                 byte[] watermarkedPdf = _pdfManipulationService.AddWatermark(pdfBytes, watermarkText);
                 return File(watermarkedPdf, "application/pdf", "watermarked.pdf");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Ошибка: {ex.Message}");
-            }
+          
         }
 
         /// <summary>
@@ -103,19 +76,14 @@ namespace PdfConverter.Controllers;
         public IActionResult DownloadFile(string fileName)
         {
             var filePath = Path.Combine(Path.GetTempPath(), fileName);
-
-            if (System.IO.File.Exists(filePath))
-            {
+            
                 var fileBytes = System.IO.File.ReadAllBytes(filePath);
                 
                 System.IO.File.Delete(filePath);
 
                 return File(fileBytes, "application/pdf", fileName);
-            }
-            else
-            {
-                return NotFound();
-            }
+           
+          
         }
         /// <summary>
         /// Compresses a PDF file at the specified compression level.
@@ -126,22 +94,11 @@ namespace PdfConverter.Controllers;
         [HttpPost("compress")]
         public IActionResult CompressPdf(IFormFile pdfFile, int compressionLevel)
         {
-            if (pdfFile == null || pdfFile.Length == 0)
-            {
-                return BadRequest("Empty file.");
-            }
-
-            try
-            {
+            
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
                 byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel);
 
                 return File(compressedPdf, "application/pdf", "compressed.pdf");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Ошибка: {ex.Message}");
-            }
         }
         /// <summary>
         /// Extracts pages from a PDF file.
@@ -153,21 +110,11 @@ namespace PdfConverter.Controllers;
         [HttpPost("extract")]
         public IActionResult ExtractPagesFromPdf(IFormFile pdfFile, int startPage, int endPage)
         {
-            if (pdfFile == null || pdfFile.Length == 0)
-            {
-                return BadRequest("Empty file.");
-            }
-
-            try
-            {
+            
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
                 byte[] extractedPdf = _pdfManipulationService.ExtractPagesFromPdf(pdfBytes, startPage, endPage);
 
                 return File(extractedPdf, "application/pdf", "extracted.pdf");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Ошибка при извлечении страниц из PDF: {ex.Message}");
-            }
+                
         }
     }
