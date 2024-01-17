@@ -6,7 +6,9 @@ using iText.Kernel.Pdf.Extgstate;
 using iText.Kernel.Pdf.Xobject;
 using iText.Layout;
 using iText.Layout.Element;
-using iText.Layout.Properties;
+using Image = iText.Layout.Element.Image;
+using PdfDocument = iText.Kernel.Pdf.PdfDocument;
+using Rectangle = iText.Kernel.Geom.Rectangle;
 
 namespace PdfConverter.Service;
 /// <summary>
@@ -153,12 +155,29 @@ public class PdfManipulationService
         try
         {
             using (PdfReader pdfReader = new PdfReader(inputStream))
-            using (PdfWriter pdfWriter = new PdfWriter(outputStream).SetCompressionLevel(compressionLevel))
-            using (PdfDocument pdfDocument = new PdfDocument(pdfReader, pdfWriter))
             {
-                // Дополнительные операции по сжатию могут быть добавлены здесь
+                PdfWriter pdfWriter = new PdfWriter(outputStream);
+                switch (compressionLevel)
+                {
+                    case 1: // Light Compression
+                        pdfWriter.SetCompressionLevel(CompressionConstants.DEFAULT_COMPRESSION);
+                        break;
+                    case 2: // Strong Compression
+                        pdfWriter.SetCompressionLevel(CompressionConstants.BEST_COMPRESSION);
+                        break;
+                    case 3: 
+                        pdfWriter.SetCompressionLevel(CompressionConstants.BEST_COMPRESSION);
+                        break;
+                    default:
+                        throw new ArgumentException("Invalid compression level");
+                }
+
+                using (PdfDocument pdfDocument = new PdfDocument(pdfReader, pdfWriter))
+                {
+                    // Process the document as required
+                }
+                return outputStream.ToArray();
             }
-            return outputStream.ToArray();
         }
         catch (Exception ex)
         {

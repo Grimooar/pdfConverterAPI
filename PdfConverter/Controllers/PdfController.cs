@@ -10,14 +10,17 @@ namespace PdfConverter.Controllers;
     public class PdfController : ControllerBase
     {
         private readonly PdfManipulationService _pdfManipulationService;
+        private readonly CompressService _compressService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfController"/> class.
         /// </summary>
         /// <param name="pdfManipulationService">Service for manipulating PDFs.</param>
-        public PdfController(PdfManipulationService pdfManipulationService)
+        /// <param name="compressService"></param>
+        public PdfController(PdfManipulationService pdfManipulationService, CompressService compressService)
         {
             _pdfManipulationService = pdfManipulationService;
+            _compressService = compressService;
         }
         /// <summary>
         /// Merges multiple PDFs into a single PDF.
@@ -39,6 +42,7 @@ namespace PdfConverter.Controllers;
         /// </summary>
         /// <param name="pdfFile">Input PDF file.</param>
         /// <param name="splitAfterPage">Page number to split after.</param>
+        /// <param name="filename"></param>
         /// <returns>Action result containing URLs for downloading split parts.</returns>
         [HttpPost("split")]
         public IActionResult SplitPdf(IFormFile pdfFile, int splitAfterPage,string filename)
@@ -63,7 +67,7 @@ namespace PdfConverter.Controllers;
             
                 byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
                 byte[] watermarkedPdf = _pdfManipulationService.AddWatermark(pdfBytes, watermarkText);
-                return File(watermarkedPdf, "application/pdf", $"{filename}_watermarked.pdf");
+                return File(watermarkedPdf,  "application/pdf", $"{filename}_watermarked.pdf");
           
         }
 
@@ -85,6 +89,7 @@ namespace PdfConverter.Controllers;
            
           
         }
+
         /// <summary>
         /// Compresses a PDF file at the specified compression level.
         /// </summary>
@@ -92,13 +97,26 @@ namespace PdfConverter.Controllers;
         /// <param name="compressionLevel">Compression level (from 0-9) 9 high compression 0 without.</param>
         /// <returns>Action result containing the compressed PDF.</returns>
         [HttpPost("compress")]
-        public IActionResult CompressPdf(IFormFile pdfFile, int compressionLevel,string filename)
+        public IActionResult CompressPdf(IFormFile pdfFile, int compressionLevel, string filename)
         {
-            
-                byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
-                byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel);
+            // Преобразование IFormFile во временный файл на сервере
+            var tempFilePath = Path.GetTempFileName();
+            using (var stream = new FileStream(tempFilePath, FileMode.Create))
+            {
+                pdfFile.CopyTo(stream);
+            }
 
-                return File(compressedPdf, "application/pdf", $"{filename}_compressed.pdf");
+            // Вызов метода CompressPdf для сжатия PDF в сервисе
+            _compressService.CompressPdf(tempFilePath, compressionLevel);
+
+            // Получение сжатого PDF из сервиса
+            byte[] compressedPdf = _compressService.GetCompressedPdf();
+
+            // Очистка временных файлов
+            System.IO.File.Delete(tempFilePath);
+
+            // Возвращение сжатого PDF в качестве файла ответа
+            return File(compressedPdf, "application/pdf", $"{filename}_compressed.pdf");
         }
         /// <summary>
         /// Extracts pages from a PDF file.
