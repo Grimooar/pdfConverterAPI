@@ -10,17 +10,15 @@ namespace PdfConverter.Controllers;
     public class PdfController : ControllerBase
     {
         private readonly PdfManipulationService _pdfManipulationService;
-        private readonly CompressService _compressService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PdfController"/> class.
         /// </summary>
         /// <param name="pdfManipulationService">Service for manipulating PDFs.</param>
         /// <param name="compressService"></param>
-        public PdfController(PdfManipulationService pdfManipulationService, CompressService compressService)
+        public PdfController(PdfManipulationService pdfManipulationService)
         {
             _pdfManipulationService = pdfManipulationService;
-            _compressService = compressService;
         }
         /// <summary>
         /// Merges multiple PDFs into a single PDF.
@@ -99,23 +97,9 @@ namespace PdfConverter.Controllers;
         [HttpPost("compress")]
         public IActionResult CompressPdf(IFormFile pdfFile, int compressionLevel, string filename)
         {
-            // Преобразование IFormFile во временный файл на сервере
-            var tempFilePath = Path.GetTempFileName();
-            using (var stream = new FileStream(tempFilePath, FileMode.Create))
-            {
-                pdfFile.CopyTo(stream);
-            }
-
-            // Вызов метода CompressPdf для сжатия PDF в сервисе
-            _compressService.CompressPdf(tempFilePath, compressionLevel);
-
-            // Получение сжатого PDF из сервиса
-            byte[] compressedPdf = _compressService.GetCompressedPdf();
-
-            // Очистка временных файлов
-            System.IO.File.Delete(tempFilePath);
-
-            // Возвращение сжатого PDF в качестве файла ответа
+            
+            byte[] pdfBytes = _pdfManipulationService.ConvertToByteArray(pdfFile);
+            byte[] compressedPdf = _pdfManipulationService.CompressPdf(pdfBytes, compressionLevel);
             return File(compressedPdf, "application/pdf", $"{filename}_compressed.pdf");
         }
         /// <summary>
